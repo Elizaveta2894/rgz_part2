@@ -7,8 +7,8 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     
     # Данные студента
-    STUDENT_FIO = "Иванов Иван Иванович"
-    STUDENT_GROUP = "ПИН-123"
+    STUDENT_FIO = "Стабровская Елизавета"
+    STUDENT_GROUP = "ФБИ-33"
     
     # Настройки сессии
     SESSION_TYPE = 'filesystem'
