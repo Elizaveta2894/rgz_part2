@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "password_hash": "scrypt:32768:8:1$RqFol4C2eypk7hr6$dd7ad0352bf1c4f4b9f276ba2e5c6a7b41f6f2ef00b1d79e04c1d502ac071b2099c232bc1ccbc68945400c902fccf178b7ce2dec6a4197b12f2d520108551ffe",
+    "is_admin": true,
+    "email": "admin@example.com",
+    "created_at": "2025-12-19"
+  },
+  {
+    "id": 2,
+    "username": "user",
+    "password_hash": "scrypt:32768:8:1$sGTTNBV8g0t521mV$bca06b623d958b5b96909a2711b8096fdd76bf3377909a4486fc754c2d1cae7fc2cffb46d9b62245737c82bb2ffb3953afd7fdf3b6b222413529858e8f9d4e21",
+    "is_admin": false,
+    "email": "user@example.com",
+    "created_at": "2025-12-19"
+  }
+]

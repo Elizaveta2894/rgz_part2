@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Кулинарные рецепты{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='favicon.jpeg') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-top">
+                <div class="student-info">
+                    <span class="fio"><i class="fas fa-user-graduate"></i> {{ student_info.fio }}</span>
+                    <span class="group"><i class="fas fa-users"></i> Группа: {{ student_info.group }}</span>
+                </div>
+                
+                <div class="auth-info">
+                    {% if current_user %}
+                        <span class="welcome"><i class="fas fa-user-circle"></i> Привет, {{ current_user.username }}!</span>
+                        {% if current_user.is_admin %}
+                            <span class="badge admin-badge"><i class="fas fa-crown"></i> Админ</span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <nav class="nav">
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                    <i class="fas fa-home"></i> Главная
+                </a>
+                <a href="{{ url_for('search_page') }}" class="nav-link {% if request.endpoint == 'search_page' %}active{% endif %}">
+                    <i class="fas fa-search"></i> Поиск
+                </a>
+                <a href="{{ url_for('all_recipes') }}" class="nav-link">
+                    <i class="fas fa-utensils"></i> Все рецепты
+                </a>
+                
+                {% if current_user and current_user.is_admin %}
+                    <a href="{{ url_for('admin_panel') }}" class="nav-link admin-link">
+                        <i class="fas fa-tools"></i> Админ-панель
+                    </a>
+                {% endif %}
+                
+                <a href="{{ url_for('author_page') }}" class="nav-link">
+                    <i class="fas fa-info-circle"></i> Об авторе
+                </a>
+                
+                <div class="nav-right">
+                    {% if current_user %}
+                        <a href="{{ url_for('logout') }}" class="nav-link logout-link">
+                            <i class="fas fa-sign-out-alt"></i> Выйти
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="nav-link">
+                            <i class="fas fa-sign-in-alt"></i> Войти
+                        </a>
+                        <a href="{{ url_for('register') }}" class="nav-link">
+                            <i class="fas fa-user-plus"></i> Регистрация
+                        </a>
+                    {% endif %}
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                            <button class="alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <h3><i class="fas fa-book-open"></i> Кулинарные рецепты</h3>
+                    <p>Проект по веб-программированию</p>
+                    {% if recipes_count is defined %}
+                        <p>Всего рецептов: {{ recipes_count }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="footer-student">
+                    <h4>Студент:</h4>
+                    <p>{{ student_info.fio }}</p>
+                    <p>Группа: {{ student_info.group }}</p>
+                    <p>Год: 2025</p>
+                </div>
+                
+                <div class="footer-links">
+                    <h4>Быстрые ссылки:</h4>
+                    <a href="{{ url_for('index') }}">Главная</a>
+                    <a href="{{ url_for('search_page') }}">Поиск</a>
+                    <a href="{{ url_for('author_page') }}">Об авторе</a>
+                    {% if current_user and current_user.is_admin %}
+                        <a href="{{ url_for('admin_panel') }}">Админ-панель</a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 Кулинарные рецепты. Все права защищены.</p>
+                <p class="tech-info">Flask + JSON-RPC API + Vanilla JavaScript</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

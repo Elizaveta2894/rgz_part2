@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Поиск рецептов - Кулинарные рецепты{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>🔍 Поиск рецептов</h1>
+    <p>Найдите идеальный рецепт по названию, ингредиентам или категории</p>
+</div>
+
+<div class="search-container">
+    <form id="searchForm" class="search-form">
+        <div class="form-group">
+            <label class="form-label">Название рецепта:</label>
+            <input type="text" name="title" placeholder="Например: паста, салат, суп..." 
+                   class="form-control" id="titleInput">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Ингредиенты (через запятую):</label>
+            <textarea name="ingredients" placeholder="яйца, мука, молоко..." 
+                      class="form-control" id="ingredientsInput" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Режим поиска по ингредиентам:</label>
+            <div class="search-mode">
+                <label>
+                    <input type="radio" name="mode" value="any" checked>
+                    <i class="fas fa-check-circle"></i> Хотя бы один ингредиент
+                </label>
+                <label>
+                    <input type="radio" name="mode" value="all">
+                    <i class="fas fa-list-check"></i> Все ингредиенты
+                </label>
+            </div>
+        </div>
+
+        <div class="search-filters">
+            <div class="form-group">
+                <label class="form-label">Категория:</label>
+                <select name="category" class="form-control" id="categorySelect">
+                    <option value="">Все категории</option>
+                    {% for category in categories %}
+                    <option value="{{ category }}">{{ category }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Сложность:</label>
+                <select name="difficulty" class="form-control" id="difficultySelect">
+                    <option value="">Любая</option>
+                    {% for difficulty in difficulties %}
+                    <option value="{{ difficulty }}">{{ difficulty }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Макс. время (мин):</label>
+                <input type="number" name="max_time" min="1" max="300" 
+                       class="form-control" id="maxTimeInput" placeholder="Например: 60">
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button type="button" onclick="performSearch()" class="btn btn-primary">
+                <i class="fas fa-search"></i> Найти рецепты
+            </button>
+            <button type="reset" class="btn btn-secondary">
+                <i class="fas fa-eraser"></i> Очистить
+            </button>
+        </div>
+    </form>
+</div>
+
+<div id="searchResults" class="search-results">
+    <div class="search-results-header">
+        <h2>Результаты поиска</h2>
+        <span id="resultsCount" class="results-count">Найдено: 0</span>
+    </div>
+    
+    <div id="resultsContainer" class="recipes-grid">
+    </div>
+    
+    <div id="noResults" style="display: none; text-align: center; padding: 40px;">
+        <i class="fas fa-search" style="font-size: 60px; color: #ccc; margin-bottom: 20px;"></i>
+        <h3>Рецепты не найдены</h3>
+        <p>Попробуйте изменить параметры поиска</p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadPopularRecipes();
+});
+
+function loadPopularRecipes() {
+    const params = {
+        title: '',
+        ingredients: [],
+        mode: 'any',
+        category: ''
+    };
+    
+    callSearchApi(params);
+}
+
+function performSearch() {
+    const form = document.getElementById('searchForm');
+    const formData = new FormData(form);
+    
+    const ingredients = formData.get('ingredients');
+    const ingredientsArray = ingredients ? 
+        ingredients.split(',').map(i => i.trim()).filter(i => i) : [];
+    
+    const params = {
+        title: formData.get('title') || '',
+        ingredients: ingredientsArray,
+        mode: formData.get('mode'),
+        category: formData.get('category') || '',
+        difficulty: formData.get('difficulty') || '',
+        max_time: formData.get('max_time') ? parseInt(formData.get('max_time')) : null
+    };
+    
+    callSearchApi(params);
+}
+
+async function callSearchApi(params) {
+    try {
+        const response = await fetch('/api', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'search_recipes',
+                params: params,
+                id: Date.now()
+            })
+        });
+        
+        const data = await response.json();
+        displayResults(data.result?.recipes || []);
+        
+    } catch (error) {
+        console.error('Ошибка поиска:', error);
+        document.getElementById('resultsContainer').innerHTML = 
+            '<div class="error">Ошибка при выполнении поиска</div>';
+    }
+}
+
+function displayResults(recipes) {
+    const resultsContainer = document.getElementById('resultsContainer');
+    const resultsCount = document.getElementById('resultsCount');
+    const noResults = document.getElementById('noResults');
+    
+    resultsCount.textContent = `Найдено: ${recipes.length}`;
+    
+    if (recipes.length === 0) {
+        resultsContainer.innerHTML = '';
+        noResults.style.display = 'block';
+        return;
+    }
+    
+    noResults.style.display = 'none';
+    
+    let html = '';
+    recipes.forEach(recipe => {
+        const ingredientsPreview = recipe.ingredients.slice(0, 3).join(', ') + 
+                                 (recipe.ingredients.length > 3 ? '...' : '');
+        
+        html += `
+        <div class="recipe-card">
+            <img src="${recipe.image_url}" alt="${recipe.title}" class="recipe-image">
+            <div class="recipe-content">
+                <h3 class="recipe-title">
+                    <a href="/recipe/${recipe.id}">${recipe.title}</a>
+                </h3>
+                <div class="recipe-meta">
+                    <span class="recipe-category">${recipe.category}</span>
+                    <span class="recipe-difficulty difficulty-${recipe.difficulty.toLowerCase()}">
+                        ${recipe.difficulty}
+                    </span>
+                </div>
+                <div class="recipe-ingredients-preview">
+                    <strong>Ингредиенты:</strong> ${ingredientsPreview}
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                    <span><i class="far fa-clock"></i> ${recipe.cooking_time} мин</span>
+                    <span><i class="fas fa-user"></i> ${recipe.author}</span>
+                    <a href="/recipe/${recipe.id}" class="recipe-link">
+                        <i class="fas fa-arrow-right"></i> Подробнее
+                    </a>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+    
+    resultsContainer.innerHTML = html;
+}
+
+let searchTimeout;
+function onSearchInput() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(performSearch, 500);
+}
+</script>
+
+<style>
+.search-form {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.search-results {
+    margin-top: 50px;
+}
+
+.search-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #4CAF50;
+}
+
+.results-count {
+    background: #4CAF50;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.error {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 20px;
+    border-radius: 5px;
+    text-align: center;
+}
+</style>
+{% endblock %}

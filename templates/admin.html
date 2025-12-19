@@ -1,0 +1,1140 @@
+{% extends "base.html" %}
+
+{% block title %}Админ-панель - Кулинарные рецепты{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1><i class="fas fa-crown"></i> Административная панель</h1>
+        <p class="subtitle">Управление системой и данными</p>
+        
+        <div class="admin-controls">
+            <a href="{{ url_for('create_recipe') }}" class="btn-create">
+                <i class="fas fa-plus-circle"></i> Создать новый рецепт
+            </a>
+        </div>
+    </div>
+
+    <div class="admin-stats">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ recipes_count }}</div>
+                    <div class="stat-label">Всего рецептов</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ users|length }}</div>
+                    <div class="stat-label">Пользователей</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ invalid_recipes|length }}</div>
+                    <div class="stat-label">Проблемных рецептов</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">{{ recipes_count // 10 }}</div>
+                    <div class="stat-label">Среднее на пользователя</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-sections">
+        <!-- Проблемные рецепты -->
+        {% if invalid_recipes %}
+        <div class="admin-section">
+            <h2><i class="fas fa-exclamation-circle"></i> Рецепты с проблемами</h2>
+            <div class="warning-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                Найдено {{ invalid_recipes|length }} рецептов с некорректным временем приготовления (≤ 0 минут)
+            </div>
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Время</th>
+                            <th>Автор</th>
+                            <th>Категория</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for recipe in invalid_recipes %}
+                        <tr class="invalid-row">
+                            <td>{{ recipe.id }}</td>
+                            <td>
+                                <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" target="_blank" class="recipe-link">
+                                    {{ recipe.title }}
+                                </a>
+                            </td>
+                            <td class="error-cell">{{ recipe.cooking_time }} мин</td>
+                            <td>{{ recipe.author }}</td>
+                            <td>{{ recipe.category }}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" 
+                                       target="_blank"
+                                       class="btn-action view-btn" 
+                                       title="Просмотреть">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}"
+                                       class="btn-action edit-btn" 
+                                       title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('fix_recipe', recipe_id=recipe.id) }}" style="display: inline;">
+                                        <button type="submit" class="btn-action fix-btn" title="Исправить время">
+                                            <i class="fas fa-wrench"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('delete_recipe_route', recipe_id=recipe.id) }}" style="display: inline;">
+                                        <button type="submit" 
+                                                class="btn-action delete-btn" 
+                                                title="Удалить"
+                                                onclick="return confirm('Удалить рецепт «{{ recipe.title }}»?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Все рецепты с пагинацией -->
+        <div class="admin-section">
+            <h2><i class="fas fa-list-alt"></i> Все рецепты ({{ recipes_count }})</h2>
+            
+            <!-- Поиск и фильтры -->
+            <div class="search-filters">
+                <input type="text" 
+                       id="recipeSearch" 
+                       placeholder="Поиск по названию..." 
+                       class="search-input">
+                
+                <select id="categoryFilter" class="filter-select">
+                    <option value="">Все категории</option>
+                    <option value="Завтрак">Завтрак</option>
+                    <option value="Обед">Обед</option>
+                    <option value="Ужин">Ужин</option>
+                    <option value="Десерт">Десерт</option>
+                    <option value="Закуска">Закуска</option>
+                    <option value="Салат">Салат</option>
+                    <option value="Суп">Суп</option>
+                    <option value="Основное блюдо">Основное блюдо</option>
+                </select>
+                
+                <button id="resetFilters" class="btn-reset">
+                    <i class="fas fa-redo"></i> Сбросить фильтры
+                </button>
+            </div>
+            
+            <div class="table-container">
+                <table class="admin-table" id="recipesTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Автор</th>
+                            <th>Категория</th>
+                            <th>Время</th>
+                            <th>Сложность</th>
+                            <th>Просмотры</th>
+                            <th>Рейтинг</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for recipe in recipes %}
+                        <tr class="recipe-row" 
+                            data-id="{{ recipe.id }}"
+                            data-title="{{ recipe.title|lower }}"
+                            data-category="{{ recipe.category }}">
+                            <td>{{ recipe.id }}</td>
+                            <td>
+                                <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" 
+                                   target="_blank" 
+                                   class="recipe-link">
+                                    {{ recipe.title }}
+                                </a>
+                            </td>
+                            <td>{{ recipe.author }}</td>
+                            <td>
+                                <span class="category-badge">{{ recipe.category }}</span>
+                            </td>
+                            <td>
+                                {% if recipe.cooking_time <= 0 %}
+                                <span class="error-text">{{ recipe.cooking_time }} мин</span>
+                                {% else %}
+                                {{ recipe.cooking_time }} мин
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if recipe.difficulty == 'Легкая' %}
+                                <span class="badge easy-badge">{{ recipe.difficulty }}</span>
+                                {% elif recipe.difficulty == 'Средняя' %}
+                                <span class="badge medium-badge">{{ recipe.difficulty }}</span>
+                                {% else %}
+                                <span class="badge hard-badge">{{ recipe.difficulty }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ recipe.views }}</td>
+                            <td>
+                                <div class="rating-display">
+                                    <div class="stars">
+                                        {% for i in range(5) %}
+                                            {% if i < recipe.rating|int %}
+                                                <i class="fas fa-star"></i>
+                                            {% else %}
+                                                <i class="far fa-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <span class="rating-value">{{ recipe.rating }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" 
+                                       target="_blank"
+                                       class="btn-action view-btn" 
+                                       title="Просмотреть">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('edit_recipe', recipe_id=recipe.id) }}"
+                                       class="btn-action edit-btn" 
+                                       title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" 
+                                          action="{{ url_for('delete_recipe_route', recipe_id=recipe.id) }}" 
+                                          style="display: inline;">
+                                        <button type="submit" 
+                                                class="btn-action delete-btn" 
+                                                title="Удалить"
+                                                onclick="return confirm('Удалить рецепт «{{ recipe.title }}»?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <!-- Пагинация -->
+                <div class="pagination" id="pagination">
+                    <!-- Пагинация будет генерироваться JavaScript -->
+                </div>
+            </div>
+            
+            <div class="table-info">
+                <p>Показано <span id="shownCount">{{ recipes|length }}</span> из {{ recipes_count }} рецептов</p>
+            </div>
+        </div>
+
+        <!-- Пользователи -->
+        <div class="admin-section">
+            <h2><i class="fas fa-user-cog"></i> Управление пользователями</h2>
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Имя пользователя</th>
+                            <th>Email</th>
+                            <th>Роль</th>
+                            <th>Дата регистрации</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email or 'Не указан' }}</td>
+                            <td>
+                                {% if user.is_admin %}
+                                <span class="badge admin-badge">Админ</span>
+                                {% else %}
+                                <span class="badge user-badge">Пользователь</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.created_at }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-container {
+    padding: 30px;
+    max-width: 1800px;
+    margin: 0 auto;
+}
+
+.admin-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.admin-header h1 {
+    color: #333;
+    font-size: 36px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.admin-header .subtitle {
+    color: #666;
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+.admin-controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-create {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    color: white;
+}
+
+.btn-create:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3);
+}
+
+/* Статистика */
+.admin-stats {
+    margin-bottom: 40px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-icon {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 30px;
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 32px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Разделы */
+.admin-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.admin-section {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.admin-section h2 {
+    color: #333;
+    margin-bottom: 25px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Поиск и фильтры */
+.search-filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 300px;
+    padding: 12px 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.filter-select {
+    padding: 12px 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 16px;
+    background: white;
+    cursor: pointer;
+    min-width: 200px;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.btn-reset {
+    padding: 12px 20px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-reset:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+/* Таблицы */
+.table-container {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.admin-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.admin-table th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    border: none;
+    white-space: nowrap;
+}
+
+.admin-table tbody tr {
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.3s ease;
+}
+
+.admin-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.admin-table td {
+    padding: 15px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+/* Ссылки на рецепты */
+.recipe-link {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.recipe-link:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+/* Бейджи */
+.badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.admin-badge {
+    background: #ffc107;
+    color: #333;
+}
+
+.user-badge {
+    background: #17a2b8;
+    color: white;
+}
+
+.category-badge {
+    background: #e9ecef;
+    color: #495057;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+.easy-badge {
+    background: #28a745;
+    color: white;
+}
+
+.medium-badge {
+    background: #ffc107;
+    color: #333;
+}
+
+.hard-badge {
+    background: #dc3545;
+    color: white;
+}
+
+/* Ошибки */
+.error-text {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.error-cell {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.invalid-row {
+    background: #fff3cd !important;
+}
+
+.invalid-row:hover {
+    background: #ffeaa7 !important;
+}
+
+.warning-message {
+    background: #fff3cd;
+    color: #856404;
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-weight: 500;
+}
+
+.warning-message i {
+    font-size: 20px;
+}
+
+/* Рейтинг */
+.rating-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stars {
+    color: #ffc107;
+    display: flex;
+    gap: 2px;
+}
+
+.rating-value {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Кнопки действий */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-action {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.view-btn {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.view-btn:hover {
+    background: #bbdefb;
+}
+
+.edit-btn {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.edit-btn:hover {
+    background: #ffe0b2;
+}
+
+.delete-btn {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+.delete-btn:hover {
+    background: #ffcdd2;
+}
+
+.fix-btn {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.fix-btn:hover {
+    background: #c8e6c9;
+}
+
+/* Пагинация */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    flex-wrap: wrap;
+}
+
+.page-btn {
+    padding: 8px 16px;
+    border: 1px solid #dee2e6;
+    background: white;
+    color: #667eea;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.page-btn:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.page-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.page-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Информация о таблице */
+.table-info {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    text-align: center;
+    color: #666;
+}
+
+#shownCount {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Адаптивность */
+@media (max-width: 1200px) {
+    .admin-container {
+        padding: 20px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .search-input {
+        min-width: 250px;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-header h1 {
+        font-size: 28px;
+    }
+    
+    .admin-section {
+        padding: 20px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .search-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-input,
+    .filter-select,
+    .btn-reset {
+        width: 100%;
+        min-width: unset;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .btn-action {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-container {
+        padding: 15px;
+    }
+    
+    .admin-header h1 {
+        font-size: 24px;
+    }
+    
+    .admin-section h2 {
+        font-size: 20px;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ПАГИНАЦИЯ И ФИЛЬТРАЦИЯ
+    const rowsPerPage = 15;
+    let currentPage = 1;
+    let filteredRows = Array.from(document.querySelectorAll('.recipe-row'));
+    
+    // Функция для отображения страницы
+    function displayPage(page) {
+        const startIndex = (page - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        
+        // Скрыть все строки
+        document.querySelectorAll('.recipe-row').forEach(row => {
+            row.style.display = 'none';
+        });
+        
+        // Показать только нужные строки
+        filteredRows.slice(startIndex, endIndex).forEach(row => {
+            row.style.display = '';
+        });
+        
+        // Обновить счетчик
+        document.getElementById('shownCount').textContent = 
+            Math.min(filteredRows.length, endIndex) - startIndex;
+        
+        // Обновить активную кнопку пагинации
+        updatePagination();
+    }
+    
+    // Функция для обновления пагинации
+    function updatePagination() {
+        const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+        const paginationDiv = document.getElementById('pagination');
+        
+        if (totalPages <= 1) {
+            paginationDiv.innerHTML = '';
+            return;
+        }
+        
+        let paginationHTML = '';
+        
+        // Кнопка "Назад"
+        paginationHTML += `
+            <button class="page-btn ${currentPage === 1 ? 'disabled' : ''}" 
+                    onclick="changePage(${currentPage - 1})" 
+                    ${currentPage === 1 ? 'disabled' : ''}>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        `;
+        
+        // Кнопки страниц
+        for (let i = 1; i <= totalPages; i++) {
+            if (i === 1 || i === totalPages || 
+                (i >= currentPage - 2 && i <= currentPage + 2)) {
+                paginationHTML += `
+                    <button class="page-btn ${i === currentPage ? 'active' : ''}" 
+                            onclick="changePage(${i})">
+                        ${i}
+                    </button>
+                `;
+            } else if (i === currentPage - 3 || i === currentPage + 3) {
+                paginationHTML += `<span class="page-dots">...</span>`;
+            }
+        }
+        
+        // Кнопка "Вперед"
+        paginationHTML += `
+            <button class="page-btn ${currentPage === totalPages ? 'disabled' : ''}" 
+                    onclick="changePage(${currentPage + 1})" 
+                    ${currentPage === totalPages ? 'disabled' : ''}>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        `;
+        
+        paginationDiv.innerHTML = paginationHTML;
+    }
+    
+    // Функция для изменения страницы
+    window.changePage = function(page) {
+        currentPage = page;
+        displayPage(currentPage);
+    };
+    
+    // ПОИСК И ФИЛЬТРАЦИЯ
+    const searchInput = document.getElementById('recipeSearch');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const resetButton = document.getElementById('resetFilters');
+    
+    function applyFilters() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedCategory = categoryFilter.value;
+        
+        filteredRows = Array.from(document.querySelectorAll('.recipe-row')).filter(row => {
+            const title = row.dataset.title;
+            const category = row.dataset.category;
+            
+            // Проверка поиска по названию
+            const matchesSearch = !searchTerm || title.includes(searchTerm);
+            
+            // Проверка фильтра по категории
+            const matchesCategory = !selectedCategory || category === selectedCategory;
+            
+            return matchesSearch && matchesCategory;
+        });
+        
+        currentPage = 1;
+        displayPage(currentPage);
+    }
+    
+    // Обработчики событий
+    searchInput.addEventListener('input', applyFilters);
+    categoryFilter.addEventListener('change', applyFilters);
+    
+    resetButton.addEventListener('click', function() {
+        searchInput.value = '';
+        categoryFilter.value = '';
+        applyFilters();
+    });
+    
+    // Инициализация
+    applyFilters();
+    displayPage(1);
+    
+    // УВЕДОМЛЕНИЯ
+    // Проверяем, есть ли флеш-сообщения от Flask
+    const flashMessages = document.querySelectorAll('.flash-message');
+    flashMessages.forEach(msg => {
+        setTimeout(() => {
+            msg.style.opacity = '0';
+            msg.style.transform = 'translateY(-10px)';
+            setTimeout(() => msg.remove(), 300);
+        }, 5000);
+    });
+    
+    // КНОПКА БЫСТРОГО ПРОСМОТРА ИЗОБРАЖЕНИЯ
+    document.querySelectorAll('.recipe-row').forEach(row => {
+        const titleCell = row.querySelector('td:nth-child(2)');
+        const titleLink = titleCell.querySelector('.recipe-link');
+        const recipeId = row.dataset.id;
+        
+        // Добавляем кнопку быстрого просмотра
+        const quickViewBtn = document.createElement('button');
+        quickViewBtn.className = 'quick-view-btn';
+        quickViewBtn.innerHTML = '<i class="fas fa-image"></i>';
+        quickViewBtn.title = 'Быстрый просмотр изображения';
+        quickViewBtn.style.cssText = `
+            margin-left: 10px;
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 14px;
+        `;
+        
+        quickViewBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            showImagePreview(recipeId);
+        });
+        
+        titleCell.appendChild(quickViewBtn);
+    });
+    
+    function showImagePreview(recipeId) {
+        // Найти рецепт по ID
+        const row = document.querySelector(`.recipe-row[data-id="${recipeId}"]`);
+        const recipeLink = row.querySelector('.recipe-link');
+        const recipeTitle = recipeLink.textContent;
+        
+        // Получить URL изображения (в реальном приложении можно через API)
+        const imageUrl = `https://source.unsplash.com/400x300/?food,recipe&sig=${recipeId}`;
+        
+        // Создать модальное окно
+        const modal = document.createElement('div');
+        modal.className = 'image-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>${recipeTitle}</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <img src="${imageUrl}" alt="${recipeTitle}" onerror="this.src='https://source.unsplash.com/400x300/?food'">
+                </div>
+                <div class="modal-footer">
+                    <a href="/admin/edit-recipe/${recipeId}" class="btn-edit-image">
+                        <i class="fas fa-edit"></i> Изменить изображение
+                    </a>
+                    <button class="btn-close-modal">Закрыть</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Стили для модального окна
+        const style = document.createElement('style');
+        style.textContent = `
+            .image-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease;
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            .image-modal .modal-content {
+                background: white;
+                border-radius: 15px;
+                width: 90%;
+                max-width: 500px;
+                animation: slideUp 0.3s ease;
+            }
+            
+            @keyframes slideUp {
+                from { transform: translateY(50px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+            
+            .image-modal .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            
+            .image-modal .modal-header h3 {
+                margin: 0;
+                color: #333;
+            }
+            
+            .image-modal .modal-close {
+                background: none;
+                border: none;
+                font-size: 24px;
+                color: #666;
+                cursor: pointer;
+                line-height: 1;
+            }
+            
+            .image-modal .modal-body {
+                padding: 20px;
+                text-align: center;
+            }
+            
+            .image-modal .modal-body img {
+                max-width: 100%;
+                max-height: 300px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            }
+            
+            .image-modal .modal-footer {
+                padding: 20px;
+                border-top: 1px solid #e0e0e0;
+                display: flex;
+                gap: 10px;
+                justify-content: flex-end;
+            }
+            
+            .image-modal .btn-edit-image {
+                padding: 10px 20px;
+                background: #667eea;
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 500;
+            }
+            
+            .image-modal .btn-close-modal {
+                padding: 10px 20px;
+                background: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 500;
+            }
+        `;
+        
+        document.head.appendChild(style);
+        
+        // Обработчики закрытия
+        const closeModal = () => {
+            modal.style.animation = 'fadeOut 0.3s ease';
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.remove();
+                style.remove();
+            }, 300);
+        };
+        
+        modal.querySelector('.modal-close').addEventListener('click', closeModal);
+        modal.querySelector('.btn-close-modal').addEventListener('click', closeModal);
+        
+        // Закрытие при клике вне окна
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+        
+        // Закрытие по ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

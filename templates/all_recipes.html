@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Все рецепты - Кулинарные рецепты{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>📚 Все рецепты</h1>
+    <p>Полная коллекция из {{ recipes_count }} вкусных рецептов</p>
+</div>
+
+<div class="recipes-controls">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <div>
+            <span>Показано: {{ recipes|length }} из {{ recipes_count }}</span>
+        </div>
+        <div>
+            <button onclick="location.reload()" class="btn btn-secondary">
+                <i class="fas fa-sync-alt"></i> Обновить
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="recipes-grid">
+    {% for recipe in recipes %}
+    <div class="recipe-card">
+        <img src="{{ recipe.image_url }}" alt="{{ recipe.title }}" class="recipe-image">
+        <div class="recipe-content">
+            <h3 class="recipe-title">
+                <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}">
+                    {{ recipe.title }}
+                </a>
+            </h3>
+            <div class="recipe-meta">
+                <span class="recipe-category">{{ recipe.category }}</span>
+                <span class="recipe-difficulty difficulty-{{ recipe.difficulty.lower() }}">
+                    {{ recipe.difficulty }}
+                </span>
+            </div>
+            <div class="recipe-ingredients-preview">
+                {{ recipe.ingredients[:3]|join(', ') }}...
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                <span><i class="far fa-clock"></i> {{ recipe.cooking_time }} мин</span>
+                <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="recipe-link">
+                    Смотреть
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+<div class="pagination" style="text-align: center; margin-top: 40px;">
+    {% if page > 1 %}
+        <a href="{{ url_for('all_recipes', page=page-1) }}" class="btn btn-secondary">
+            <i class="fas fa-chevron-left"></i> Назад
+        </a>
+    {% endif %}
+    
+    <span style="margin: 0 20px;">Страница {{ page }} из {{ total_pages }}</span>
+    
+    {% if page < total_pages %}
+        <a href="{{ url_for('all_recipes', page=page+1) }}" class="btn btn-secondary">
+            Вперед <i class="fas fa-chevron-right"></i>
+        </a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

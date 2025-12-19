@@ -1,0 +1,126 @@
+<div class="author-section">
+    <h2>Об авторе</h2>
+    
+    <div class="author-info">
+        <p><strong>Имя:</strong> Стабровская Елизавета</p>
+        <p><strong>Группа:</strong> ФБИ-33</p>
+        
+        <div class="author-bio">
+            <h3>Биография</h3>
+            <p>Студентка, увлекающаяся кулинарией и веб-разработкой. Создала этот сайт, чтобы делиться любимыми рецептами с другими энтузиастами кулинарии.</p>
+        </div>
+        
+        <div class="author-contact">
+            <h3>Контакты</h3>
+            <ul>
+                <li>Email: e.stabrovskaya@example.com</li>
+                <li>Телефон: +7 (XXX) XXX-XX-XX</li>
+            </ul>
+        </div>
+
+        <div class="back-button-container">
+            <a href="/" class="back-button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                Вернуться на главную
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.author-section {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.author-section h2 {
+    color: #333;
+    border-bottom: 2px solid #4CAF50;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.author-info p {
+    margin: 10px 0;
+    font-size: 16px;
+}
+
+.author-bio, .author-contact, .previous-work {
+    margin-top: 25px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 8px;
+    border-left: 4px solid #4CAF50;
+}
+
+.author-bio h3, .author-contact h3, .previous-work h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.author-contact ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.author-contact li {
+    margin: 8px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.author-contact li:before {
+    content: "•";
+    color: #4CAF50;
+    font-size: 20px;
+    position: absolute;
+    left: 0;
+    top: -2px;
+}
+
+/* Стили для кнопки возврата */
+.back-button-container {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background-color: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.back-button:hover {
+    background-color: #3d8b40;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.back-button:active {
+    transform: translateY(0);
+}
+
+.back-button svg {
+    transition: transform 0.3s ease;
+}
+
+.back-button:hover svg {
+    transform: translateX(-3px);
+}
+</style>

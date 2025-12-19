@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - Кулинарные рецепты{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.stat-card {
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-number {
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    transition: color 0.5s ease;
+}
+
+.stat-number.loading {
+    color: #ccc !important;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>🍳 Добро пожаловать в мир кулинарии!</h1>
+    <p>Откройте для себя более {{ recipes_count }} вкусных рецептов на любой вкус. Ищите по ингредиентам, сохраняйте любимые рецепты и создавайте свои кулинарные шедевры!</p>
+    
+    <div style="max-width: 600px; margin: 0 auto;">
+        <a href="{{ url_for('search_page') }}" class="btn btn-primary" style="padding: 15px 30px; font-size: 18px;">
+            <i class="fas fa-search"></i> Начать поиск рецептов
+        </a>
+    </div>
+</section>
+
+<section class="popular-recipes">
+    <h2 style="margin-bottom: 30px; color: var(--primary-dark);">
+        <i class="fas fa-fire"></i> Популярные рецепты
+    </h2>
+    
+    <div class="recipes-grid">
+        {% for recipe in popular_recipes[:6] %}
+        <div class="recipe-card">
+            <img src="{{ recipe.image_url }}" alt="{{ recipe.title }}" class="recipe-image">
+            <div class="recipe-content">
+                <h3 class="recipe-title">
+                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}">
+                        {{ recipe.title }}
+                    </a>
+                </h3>
+                <div class="recipe-meta">
+                    <span class="recipe-category">{{ recipe.category }}</span>
+                    <span class="recipe-difficulty difficulty-{{ recipe.difficulty.lower() }}">
+                        {{ recipe.difficulty }}
+                    </span>
+                </div>
+                <div class="recipe-ingredients-preview">
+                    {{ recipe.ingredients[:3]|join(', ') }}...
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="far fa-clock"></i> {{ recipe.cooking_time }} мин</span>
+                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="recipe-link">
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section style="margin-top: 50px;">
+    <h2 style="margin-bottom: 30px; color: var(--primary-dark);">
+        <i class="fas fa-history"></i> Недавно добавленные
+    </h2>
+    
+    <div class="recipes-grid">
+        {% for recipe in recent_recipes %}
+        <div class="recipe-card">
+            <img src="{{ recipe.image_url }}" alt="{{ recipe.title }}" class="recipe-image">
+            <div class="recipe-content">
+                <h3 class="recipe-title">
+                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}">
+                        {{ recipe.title }}
+                    </a>
+                </h3>
+                <div class="recipe-meta">
+                    <span class="recipe-category">{{ recipe.category }}</span>
+                    <span class="recipe-difficulty difficulty-{{ recipe.difficulty.lower() }}">
+                        {{ recipe.difficulty }}
+                    </span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fas fa-user"></i> {{ recipe.author }}</span>
+                    <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="recipe-link">
+                        Смотреть
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+{% if not current_user %}
+<section style="margin-top: 50px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 50px; border-radius: 10px; text-align: center;">
+    <h2 style="margin-bottom: 20px;">Хотите больше возможностей?</h2>
+    <p style="margin-bottom: 30px; font-size: 1.1rem; opacity: 0.9;">
+        Зарегистрируйтесь, чтобы сохранять любимые рецепты, добавлять свои и получить доступ ко всем функциям!
+    </p>
+    <a href="{{ url_for('login') }}" class="btn" style="background: white; color: var(--primary); padding: 15px 30px; font-size: 18px; margin-right: 10px;">
+        <i class="fas fa-sign-in-alt"></i> Войти
+    </a>
+    <a href="#" class="btn" style="background: rgba(255,255,255,0.2); color: white; padding: 15px 30px; font-size: 18px; border: 2px solid white;">
+        <i class="fas fa-user-plus"></i> Зарегистрироваться
+    </a>
+</section>
+{% endif %}
+
+<!-- Наша статистика -->
+<section style="margin-top: 50px; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
+    <h2 style="text-align: center; margin-bottom: 30px; color: var(--primary-dark);">
+        <i class="fas fa-chart-bar"></i> Наша статистика
+    </h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 30px; text-align: center;">
+        <div class="stat-card">
+            <div class="stat-number" style="color: var(--primary);">{{ recipes_count }}</div>
+            <div style="color: var(--gray); font-size: 1.1rem; font-weight: 500;">Рецептов</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number loading" id="stat-users" style="color: var(--secondary);">...</div>
+            <div style="color: var(--gray); font-size: 1.1rem; font-weight: 500;">Пользователей</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number loading" id="stat-total-time" style="color: var(--success);">...</div>
+            <div style="color: var(--gray); font-size: 1.1rem; font-weight: 500;">Минут готовки</div>
+            <div style="font-size: 12px; color: #999; margin-top: 5px;">(общее время)</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number loading" id="stat-categories" style="color: var(--warning);">...</div>
+            <div style="color: var(--gray); font-size: 1.1rem; font-weight: 500;">Категорий</div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadStats() {
+    try {
+        console.log('Загрузка статистики...');
+
+        const statsResponse = await window.App.callJsonRpc('get_recipes_count', {});
+        
+        if (statsResponse.result) {
+            const stats = statsResponse.result;
+        
+            animateCounter('stat-users', 2); 
+            animateCounter('stat-total-time', Math.round(stats.avg_cooking_time * stats.total));
+            animateCounter('stat-categories', Object.keys(stats.categories).length);
+            
+            document.querySelectorAll('.stat-number.loading').forEach(el => {
+                el.classList.remove('loading');
+            });
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
+        
+        document.getElementById('stat-users').textContent = '2';
+        document.getElementById('stat-total-time').textContent = '4 210';
+        document.getElementById('stat-categories').textContent = '8';
+        document.querySelectorAll('.stat-number.loading').forEach(el => {
+            el.classList.remove('loading');
+        });
+    }
+}
+
+function animateCounter(elementId, targetValue) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const startValue = parseInt(element.textContent.replace(/\s/g, '')) || 0;
+    const duration = 1000; 
+    const startTime = Date.now();
+    
+    function updateCounter() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        const currentValue = Math.round(startValue + (targetValue - startValue) * easeProgress);
+        
+        // Форматируем число с пробелами
+        element.textContent = formatNumber(currentValue);
+        
+        if (progress < 1) {
+            requestAnimationFrame(updateCounter);
+        } else {
+            element.textContent = formatNumber(targetValue);
+        }
+    }
+    
+    updateCounter();
+}
+
+function formatNumber(number) {
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(loadStats, 300);
+});
+</script>
+{% endblock %}
